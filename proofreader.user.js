@@ -7,8 +7,8 @@
 // @match        https://inkwell.death.tech/dashboard/*
 // @grant        none
 // @require      https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.min.js
-// @updateURL    https://raw.githubusercontent.com/YOUR_USERNAME/will-proofreader/main/proofreader.user.js
-// @downloadURL  https://raw.githubusercontent.com/YOUR_USERNAME/will-proofreader/main/proofreader.user.js
+// @updateURL    https://raw.githubusercontent.com/jorgebonifasi-stack/will-proofreader/main/proofreader.user.js
+// @downloadURL  https://raw.githubusercontent.com/jorgebonifasi-stack/will-proofreader/main/proofreader.user.js
 // ==/UserScript==
 
 function __olpInit() {
