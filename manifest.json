@@ -1,0 +1,21 @@
+{
+  "manifest_version": 3,
+  "name": "Octopus Legacy - Will Proofreader",
+  "version": "1.1.0",
+  "description": "Will proofreading tool for Inkwell consultations",
+  "content_scripts": [{
+    "matches": ["https://inkwell.death.tech/dashboard/*"],
+    "js": ["pdf.min.js", "proofreader.js"],
+    "run_at": "document_idle"
+  }],
+  "web_accessible_resources": [{
+    "resources": ["pdf.worker.min.js"],
+    "matches": ["https://inkwell.death.tech/*"]
+  }],
+  "permissions": [],
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}
