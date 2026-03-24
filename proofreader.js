@@ -90,6 +90,32 @@ function __olpInit() {
     if (S.documents.length === 0) runPipeline();
   }
 
+  /* ── ATTACHMENT SCANNER ── */
+  function scanForAttachments(currentConsultationId) {
+    var attachments = [];
+    var seen = {};
+    var regex = /consultationId[\\]*":[\\]*"([^"]+)[\\]*",[\\]*"attachmentId[\\]*":[\\]*"([^"]+)[\\]*",[\\]*"filename[\\]*":[\\]*"([^"]+)[\\]*",[\\]*"documentType[\\]*":[\\]*"([^"]+)[\\]*"/g;
+    var sources = [];
+    document.querySelectorAll('script').forEach(function(s) { sources.push(s.textContent || ''); });
+    sources.push(document.body.innerHTML || '');
+    sources.forEach(function(text) {
+      regex.lastIndex = 0;
+      var m;
+      while ((m = regex.exec(text)) !== null) {
+        var att = {
+          consultationId: m[1].replace(/\\/g, ''),
+          attachmentId:   m[2].replace(/\\/g, ''),
+          filename:       m[3].replace(/\\/g, ''),
+          documentType:   m[4].replace(/\\/g, '')
+        };
+        // Only keep attachments belonging to the current consultation
+        if (att.consultationId !== currentConsultationId) continue;
+        if (!seen[att.attachmentId]) { seen[att.attachmentId] = true; attachments.push(att); }
+      }
+    });
+    return attachments;
+  }
+
   /* ── MAIN PIPELINE ── */
   async function runPipeline() {
     var log = $('olp-log');
@@ -104,32 +130,28 @@ function __olpInit() {
     S.consultationId = urlMatch[1];
     addLog('Consultation: ' + S.consultationId.substring(0, 8) + '...');
 
-    // Step 2: Extract attachments from page scripts
-    S.attachments = [];
-    var scripts = document.querySelectorAll('script');
-    var seen = {};
-    for (var i = 0; i < scripts.length; i++) {
-      var text = scripts[i].textContent || '';
-      var regex = /consultationId[\\]*":[\\]*"([^"]+)[\\]*",[\\]*"attachmentId[\\]*":[\\]*"([^"]+)[\\]*",[\\]*"filename[\\]*":[\\]*"([^"]+)[\\]*",[\\]*"documentType[\\]*":[\\]*"([^"]+)[\\]*"/g;
-      var m;
-      while ((m = regex.exec(text)) !== null) {
-        var att = {
-          consultationId: m[1].replace(/\\/g, ''),
-          attachmentId: m[2].replace(/\\/g, ''),
-          filename: m[3].replace(/\\/g, ''),
-          documentType: m[4].replace(/\\/g, '')
-        };
-        if (!seen[att.attachmentId]) {
-          seen[att.attachmentId] = true;
-          S.attachments.push(att);
-        }
+    // Step 2: Extract attachments - auto-scroll to trigger lazy loading if needed
+    S.attachments = scanForAttachments(S.consultationId);
+
+    if (S.attachments.length === 0) {
+      addLog('Scrolling to load attachments...');
+      $('olp-loading-text').textContent = 'Loading attachments...';
+      var totalHeight = document.body.scrollHeight;
+      var steps = 5;
+      for (var s = 1; s <= steps; s++) {
+        window.scrollTo(0, Math.floor((totalHeight / steps) * s));
+        await new Promise(function(r) { setTimeout(r, 700); });
+        S.attachments = scanForAttachments(S.consultationId);
+        if (S.attachments.length > 0) break;
       }
+      window.scrollTo(0, 0);
     }
+
     addLog('Found ' + S.attachments.length + ' documents');
 
     if (S.attachments.length === 0) {
       $('olp-loading').style.display = 'none';
-      $('olp-results').innerHTML = '<div style="color:#f87171;padding:8px;font-size:11px;">No documents found. Scroll down to load attachments, then click &#9881; > Re-extract.</div>';
+      $('olp-results').innerHTML = '<div style="color:#f87171;padding:8px;font-size:11px;">No documents found on this consultation.</div>';
       return;
     }
 
